@@ -30,7 +30,10 @@ class SauceAPI
     }
 
     protected function makeRequest($url, $type="GET", $params=false)
-    {
+{
+    $attempts = 0;
+
+    do {
         $ch = curl_init();
         if($this->verify_certs == false) {
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
@@ -53,15 +56,6 @@ class SauceAPI
         if (getenv('CURL_CA_BUNDLE')) {
             curl_setopt($ch, CURLOPT_CAINFO, getenv('CURL_CA_BUNDLE'));
         }
-        
-        // If user has requested it, be extremely verbose when making requests.
-        // This is primarily intended to help Sauce Support staff figure out what's
-        // busted.
-        if (getenv('SAUCE_DIAGNOSE_SSL')) {
-            curl_setopt($ch, CURLOPT_CERTINFO, true);
-            curl_setopt($ch, CURLOPT_VERBOSE, true);
-            curl_setopt($ch, CURLOPT_STDERR, getenv('SAUCE_DIAGNOSE_SSL'));
-        }
 
         $headers = array();
         $headers[] = 'Content-Type: text/json';
@@ -77,13 +71,24 @@ class SauceAPI
 
         $response = curl_exec($ch);
 
-        if (curl_errno($ch))
-            throw new \Exception("Got an error while making a request: ".curl_error($ch));
+        $failed = false;
+        if (curl_errno($ch)) {
+            $failed = true;
+            $error = curl_error($ch);
+            curl_close($ch);
+        }
 
-        curl_close($ch);
+    } while ($failed && ++$attempts < 10);
 
-        return $this->convertResult($response);
+    if ($failed) {
+        throw new \Exception("Got an error while making a request (tried " . $attempts . " times): ".$error);
     }
+
+    curl_close($ch);
+
+    return $this->convertResult($response);
+}
+
 
     public function __call($command, $args)
     {

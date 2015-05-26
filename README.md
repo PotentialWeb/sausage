@@ -1,5 +1,10 @@
 [![Build Status](https://travis-ci.org/jlipps/sausage.svg?branch=master)](https://travis-ci.org/jlipps/sausage)
 
+Forked because of
+=======
+
+https://github.com/jlipps/sausage/issues/41
+
 Sausage
 =======
 
